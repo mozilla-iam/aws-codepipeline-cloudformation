@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Create a Docker CI/CD pipeline with CodePipeline, CodeBuild and ECR
 Parameters:
   ProjectName:
-    Default: GenericProjectName
+    Default: generic-project-name
     Description: The name for the project associated with this pipeline (used to namespace resources)
     Type: String
   GitHubOwner:
@@ -14,14 +14,6 @@ Parameters:
     Default: sso-dashboard
     Description: The GitHub repository name
     Type: String
-  GitHubRepoBranch:
-    Default: master
-    Description: The branch for the GitHub repository
-    Type: String
-  Email:
-    Description: The email address where CodePipeline sends pipeline notifications
-    Type: String
-
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -34,48 +26,12 @@ Metadata:
         Parameters:
           - GitHubOwner
           - GitHubRepo
-          - GitHubRepoBranch
-      - Label:
-          default: "Notifcation Settings"
-        Parameters:
-          - Email
-
 Resources:
   ArtifactStoreBucket:
     Type: AWS::S3::Bucket
     Properties:
       VersioningConfiguration:
         Status: Enabled
-
-  CodePipelineSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      Subscription:
-        - Endpoint: !Ref Email
-          Protocol: email
-
-  EventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: EventRule
-      EventPattern:
-        source:
-        - aws.codepipeline
-        detail-type:
-        - CodeBuild Build State Change
-        detail:
-          state:
-          - FAILED
-          project-name:
-          - !Ref CodeBuildProject
-      State: "ENABLED"
-      Targets:
-        -
-          Arn:
-            Ref: CodePipelineSNSTopic
-          Id:
-            Ref: ProjectName
-
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -112,7 +68,6 @@ Resources:
               InputArtifacts:
                 - Name: AppSource
               RunOrder: '1'
-
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -132,12 +87,10 @@ Resources:
         Fn::GetAtt:
         - CodeBuildRole
         - Arn
-
   ContainerRegistry:
     Type: "AWS::ECR::Repository"
     Properties:
-      RepositoryName: test-repository
-
+      RepositoryName: !Ref ProjectName
   CFNRole:
     Type: AWS::IAM::Role
     Properties:
@@ -158,7 +111,6 @@ Resources:
                   - 'ec2:*'
                 Effect: Allow
                 Resource: '*'
-
   PipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -191,7 +143,6 @@ Resources:
                 - 'codebuild:*'
                 Effect: Allow
                 Resource: '*'
-
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
